@@ -66,6 +66,7 @@ def load_mesh(
     """Load a mesh."""
     with path.open("r") as f:
         mesh = load_obj(f)
+    mesh = mesh['geometry'][str(path)]
     vertices = torch.tensor(mesh["vertices"], dtype=torch.float32, device=device)
     faces = torch.tensor(mesh["faces"], dtype=torch.int64, device=device)
     return vertices, faces
