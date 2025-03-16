@@ -1,6 +1,7 @@
 from jaxtyping import Float
 from torch import Tensor
 import torch
+from einops import einsum
 
 
 def homogenize_points(
@@ -64,4 +65,22 @@ def project(
 ) -> Float[Tensor, "*batch 2"]:
     """Project homogenized 3D points in camera coordinates to pixel coordinates."""
 
+    zero_col = torch.zeros(
+        intrinsics.shape[0],
+        intrinsics.shape[1],
+        intrinsics.shape[2],
+        1,
+        dtype=torch.float32,
+    )
+    # print(zero_col.shape)
+    # print(intrinsics.shape)
+    # print(xyz.shape)
+
+    intrinsics = torch.cat((intrinsics, zero_col), dim=3)
+    print(intrinsics.shape)
+    intrinsics = intrinsics.expand(xyz.shape[0], xyz.shape[1], -1, -1)
+    print(intrinsics.shape)
+    wdc_vertices = torch.einsum("...ij, ...j -> ...i", intrinsics, xyz)
+    print(wdc_vertices.shape)
+    return wdc_vertices[..., :-1] / wdc_vertices[..., -1:]
     raise NotImplementedError("This is your homework.")
