@@ -72,15 +72,9 @@ def project(
         1,
         dtype=torch.float32,
     )
-    # print(zero_col.shape)
-    # print(intrinsics.shape)
-    # print(xyz.shape)
-
     intrinsics = torch.cat((intrinsics, zero_col), dim=3)
-    print(intrinsics.shape)
     intrinsics = intrinsics.expand(xyz.shape[0], xyz.shape[1], -1, -1)
-    print(intrinsics.shape)
+
     wdc_vertices = torch.einsum("...ij, ...j -> ...i", intrinsics, xyz)
-    print(wdc_vertices.shape)
     return wdc_vertices[..., :-1] / wdc_vertices[..., -1:]
     raise NotImplementedError("This is your homework.")
