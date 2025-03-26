@@ -4,6 +4,10 @@ from typing import Literal, TypedDict
 from jaxtyping import Float
 from torch import Tensor
 
+import json
+import numpy as np
+from PIL import Image
+
 
 class PuzzleDataset(TypedDict):
     extrinsics: Float[Tensor, "batch 4 4"]
@@ -14,6 +18,18 @@ class PuzzleDataset(TypedDict):
 def load_dataset(path: Path) -> PuzzleDataset:
     """Load the dataset into the required format."""
 
+    metadata = json.loads((path / "metadata.json").open("r").read())
+
+    image_names = path.glob("images/*.png")
+    images = []
+    for image_name in image_names:
+        images.append(np.asarray(Image.open(image_name)))
+
+    return PuzzleDataset(
+        extrinsics=Tensor(metadata["extrinsics"]),
+        intrinsics=Tensor(metadata["intrinsics"]),
+        images=Tensor(np.array(images)),
+    )
     raise NotImplementedError("This is your homework.")
 
 
@@ -29,7 +45,8 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
 
     """
 
-    raise NotImplementedError("This is your homework.")
+    return dataset
+    # raise NotImplementedError("This is your homework.")
 
 
 def quiz_question_1() -> Literal["w2c", "c2w"]:
