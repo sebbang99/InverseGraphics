@@ -12,6 +12,7 @@ with install_import_hook(("src",), ("beartype", "beartype")):
 # Put the path to your puzzle here.
 # DATASET_PATH = Path("data/sample_dataset")
 DATASET_PATH = Path("Puzzles/aashnash")
+# DATASET_PATH = Path("Puzzles/jakobtro")
 
 if __name__ == "__main__":
     original_dataset = load_dataset(DATASET_PATH)
