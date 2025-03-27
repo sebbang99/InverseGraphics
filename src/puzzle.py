@@ -7,6 +7,7 @@ from torch import Tensor
 import json
 import numpy as np
 from PIL import Image
+import torch
 
 
 class PuzzleDataset(TypedDict):
@@ -45,8 +46,60 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
 
     """
 
+    # 0. Get R and T from extrinsic matrix.
+    ext = dataset["extrinsics"]
+    R = ext[..., :3, :3]
+    T = ext[..., :3, 3:4]
+
+    # 1. Find the look vector.
+    look = np.zeros(3)
+    leftVectors = []
+    w2c = False
+    for i in range(2):
+        if np.dot(-T, R[:, i]) == 2:  # w2c, same direction
+            look = R[:, i]
+            leftVectors.extend([R[:, (i + 1) % 3], R[:, (i + 2) % 3]])
+            w2c = True
+            break
+        if np.dot(-T, R[:, i]) == -2:  # w2c, opposite direction
+            look = -R[:, i]
+            leftVectors.extend([R[:, (i + 1) % 3], R[:, (i + 2) % 3]])
+            w2c = True
+            break
+        if np.dot(-T, R[i, :]) == 2:  # c2w, same direction
+            look = R[i, :]
+            leftVectors.extend([R[:, (i + 1) % 3], R[:, (i + 2) % 3]])
+            break
+        if np.dot(-T, R[i, :]) == -2:  # c2w, opposite direction
+            look = -R[i, :]
+            leftVectors.extend([R[:, (i + 1) % 3], R[:, (i + 2) % 3]])
+            break
+
+    # 2. Find the right vector.
+    worldY = np.array([0, 1, 0])
+    rightApprox = np.cross(worldY, look)
+    right = np.array([0, 0, 0])
+    if abs(np.dot(rightApprox, leftVectors[0])) < abs(
+        np.dot(rightApprox, leftVectors[1])
+    ):
+        right = leftVectors[0]
+    else:
+        right = leftVectors[1]
+    if np.dot(np.cross(look, right), worldY) < 0:  # adjust direction
+        right = -right
+
+    # 3. Find the up vector.
+    up = np.cross(look, right)
+
+    # 4. Compose new extrinsic matrix.
+    newR = np.column_stack((right, up, look))
+    newT = T if w2c else -np.linalg.inv(R) @ R @ T
+    ext[..., :3, :3] = newR
+    ext[..., :3, -1:] = newT
+
+    dataset["extrinsics"] = ext
     return dataset
-    # raise NotImplementedError("This is your homework.")
+    raise NotImplementedError("This is your homework.")
 
 
 def quiz_question_1() -> Literal["w2c", "c2w"]:
