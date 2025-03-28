@@ -49,7 +49,7 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
     # 0. Get R and T from extrinsic matrix.
     ext = dataset["extrinsics"]
     R = ext[..., :3, :3]  # [32, 3, 3]
-    T = ext[..., :3, 3:]  # [32, 3]
+    T = ext[..., :3, 3:]  # [32, 3, 1]
 
     # 1. Find the look vector.
     look = torch.zeros((R.shape[0], 3), dtype=torch.float32)  # [32, 3]
@@ -62,14 +62,17 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
             torch.bmm(R.transpose(-1, -2), T).squeeze(),  # look vec
             R[:, i, :],  # camera axis
         )  # [32, 3] x [32, 3]
-        print(f"{dotProduct=}")
         w2cMaskSame = torch.abs(dotProduct - 2) < 1e-4  # [32]
-        print(f"{w2cMaskSame=}")
         if torch.any(w2cMaskSame):  # w2c, same direction
             look[w2cMaskSame] = R[w2cMaskSame, i, :]
             leftVectors.append(
                 torch.cat(
-                    [R[w2cMaskSame, (i + 1) % 3, :], R[w2cMaskSame, (i + 2) % 3, :]],
+                    [
+                        R[w2cMaskSame, (i + 1) % 3, :],
+                        R[w2cMaskSame, (i + 2) % 3, :],
+                        -R[w2cMaskSame, (i + 1) % 3, :],
+                        -R[w2cMaskSame, (i + 2) % 3, :],
+                    ],
                     dim=1,
                 )
             )
@@ -77,7 +80,6 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
             break
 
         w2cMaskOpposite = torch.abs(dotProduct + 2) < 1e-4
-        print(f"{w2cMaskOpposite=}")
         if torch.any(w2cMaskOpposite):  # w2c, opposite direction
             look[w2cMaskOpposite] = -R[w2cMaskOpposite, i, :]
             leftVectors.append(
@@ -85,6 +87,8 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
                     [
                         R[w2cMaskOpposite, (i + 1) % 3, :],
                         R[w2cMaskOpposite, (i + 2) % 3, :],
+                        -R[w2cMaskOpposite, (i + 1) % 3, :],
+                        -R[w2cMaskOpposite, (i + 2) % 3, :],
                     ],
                     dim=1,
                 )
@@ -92,26 +96,26 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
             w2c[w2cMaskOpposite] = True
             break
 
-        print(f"{T.shape=}")
-        print(f"{R[:,:,0:1].shape=}")
         dotProduct = torch.einsum(
             "ij, ij -> i", -T.squeeze(), R[:, :, i : i + 1].squeeze()
         )  # [32, 3] x [32, 3]
-        print(f"{dotProduct=}")
         c2wMaskSame = torch.abs(dotProduct - 2) < 1e-4
-        print(c2wMaskSame)
         if torch.any(c2wMaskSame):  # c2w, same direction
             look[c2wMaskSame] = R[c2wMaskSame, :, i]
             leftVectors.append(
                 torch.cat(
-                    [R[c2wMaskSame, :, (i + 1) % 3], R[c2wMaskSame, :, (i + 2) % 3]],
+                    [
+                        R[c2wMaskSame, :, (i + 1) % 3],
+                        R[c2wMaskSame, :, (i + 2) % 3],
+                        -R[c2wMaskSame, :, (i + 1) % 3],
+                        -R[c2wMaskSame, :, (i + 2) % 3],
+                    ],
                     dim=1,
                 )
             )
             break
 
         c2wMaskOpposite = torch.abs(dotProduct + 2) < 1e-4
-        print(c2wMaskOpposite)
         if torch.any(c2wMaskOpposite):  # c2w, opposite direction
             look[c2wMaskOpposite] = -R[c2wMaskOpposite, :, i]
             leftVectors.append(
@@ -119,6 +123,8 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
                     [
                         R[c2wMaskOpposite, :, (i + 1) % 3],
                         R[c2wMaskOpposite, :, (i + 2) % 3],
+                        -R[c2wMaskOpposite, :, (i + 1) % 3],
+                        -R[c2wMaskOpposite, :, (i + 2) % 3],
                     ],
                     dim=1,
                 )
@@ -126,38 +132,44 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
             break
 
     # 2. Find the right vector.
-    worldY = torch.tensor([0, 1, 0], dtype=torch.float32).expand(32, -1)  # [32, 3]
-    # print(worldY.shape)
-    rightApprox = torch.cross(worldY, look)  # [32, 3]
-    # print(rightApprox.shape)
     right = torch.zeros((R.shape[0], 3), dtype=torch.float32)
+    worldY = torch.tensor([0, 1, 0], dtype=torch.float32).expand(32, -1)  # [32, 3]
+    rightApprox = torch.cross(-worldY, look)  # [32, 3]
+    # rightApprox = torch.cross(worldY, look)  # [32, 3]
 
-    # print(leftVectors.shape)
-    # print(leftVectors[0].shape)
-    cand0 = torch.abs(torch.sum(rightApprox * leftVectors[0][:, 0:3], dim=1))
-    cand1 = torch.abs(torch.sum(rightApprox * leftVectors[0][:, 0:3], dim=1))
-    right[cand0 < cand1] = leftVectors[0][:, 0:3][cand0 < cand1]
-    right[cand0 >= cand1] = leftVectors[0][:, 0:3][cand0 >= cand1]
+    leftVectors_reshaped = leftVectors[0].reshape(32, 4, 3)
+    cands = torch.stack(
+        [
+            torch.sum(rightApprox * leftVectors[0][:, 0:3], dim=1),
+            torch.sum(rightApprox * leftVectors[0][:, 3:6], dim=1),
+            torch.sum(rightApprox * leftVectors[0][:, 6:9], dim=1),
+            torch.sum(rightApprox * leftVectors[0][:, 9:12], dim=1),
+        ],
+        dim=1,
+    )
+    max_indices = torch.argmax(cands, dim=1)
+    max_indices = max_indices.unsqueeze(-1).unsqueeze(-1)
+    right = leftVectors_reshaped.gather(1, max_indices.expand(-1, -1, 3)).squeeze(1)
+    # right[cand0 < cand1] = leftVectors[0][:, 0:3][cand0 < cand1]
+    # right[cand0 >= cand1] = leftVectors[0][:, 3:6][cand0 >= cand1]
+    # print(f"{leftVectors[0]=}")
+    # print(f"{right=}")
 
-    lookCrossRight = torch.cross(look, right)  # adjust direction
-    dotWorldY = torch.sum(lookCrossRight * worldY, dim=1)
-    right[dotWorldY < 0] = -right[dotWorldY < 0]
+    # lookCrossRight = torch.cross(look, right)  # adjust direction
+    # dotWorldY = torch.sum(lookCrossRight * worldY, dim=1)
+    # print(f"{dotWorldY=}")
+    # right[dotWorldY < 0] = -right[dotWorldY < 0]
 
     # 3. Find the up vector.
     up = torch.cross(look, right)  # [32, 3]
-    # print(up.shape)
 
     # 4. Compose new extrinsic matrix.
     newR = torch.stack((right, up, look), dim=-1)
-    print(w2c.shape)
-    print(T.shape)
-    print((-torch.linalg.inv(R) @ R @ T).shape)
     newT = torch.where(
         w2c.unsqueeze(1).expand(-1, 3),
-        torch.bmm(R.transpose(-1, -2), T).squeeze(),
+        -torch.bmm(R.transpose(-1, -2), T).squeeze(),
         T.squeeze(),
     ).unsqueeze(-1)
-    print(newT.shape)
     ext[..., :3, :3] = newR
     ext[..., :3, -1:] = newT
 
