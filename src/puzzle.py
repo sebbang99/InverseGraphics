@@ -59,10 +59,10 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
     for i in range(3):
         dotProduct = torch.einsum(
             "ij, ij -> i",
-            torch.bmm(R.transpose(-1, -2), T).squeeze(),  # look vec
-            R[:, i, :],  # camera axis
-        )  # [32, 3] x [32, 3]
-        w2cMaskSame = torch.abs(dotProduct - 2) < 1e-4  # [32]
+            torch.bmm(R.transpose(-1, -2), T).squeeze(),
+            R[:, i, :],
+        )
+        w2cMaskSame = torch.abs(dotProduct - 2) < 1e-4
         if torch.any(w2cMaskSame):  # w2c, same direction
             look[w2cMaskSame] = R[w2cMaskSame, i, :]
             leftVectors.append(
@@ -133,11 +133,10 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
 
     # 2. Find the right vector.
     right = torch.zeros((R.shape[0], 3), dtype=torch.float32)
-    worldY = torch.tensor([0, 1, 0], dtype=torch.float32).expand(32, -1)  # [32, 3]
-    rightApprox = torch.cross(-worldY, look)  # [32, 3]
-    # rightApprox = torch.cross(worldY, look)  # [32, 3]
+    worldY = torch.tensor([0, 1, 0], dtype=torch.float32).expand(R.shape[0], -1)
+    rightApprox = torch.linalg.cross(-worldY, look)
 
-    leftVectors_reshaped = leftVectors[0].reshape(32, 4, 3)
+    leftVectors_reshaped = leftVectors[0].reshape(R.shape[0], 4, 3)
     cands = torch.stack(
         [
             torch.sum(rightApprox * leftVectors[0][:, 0:3], dim=1),
@@ -150,21 +149,12 @@ def convert_dataset(dataset: PuzzleDataset) -> PuzzleDataset:
     max_indices = torch.argmax(cands, dim=1)
     max_indices = max_indices.unsqueeze(-1).unsqueeze(-1)
     right = leftVectors_reshaped.gather(1, max_indices.expand(-1, -1, 3)).squeeze(1)
-    # right[cand0 < cand1] = leftVectors[0][:, 0:3][cand0 < cand1]
-    # right[cand0 >= cand1] = leftVectors[0][:, 3:6][cand0 >= cand1]
-    # print(f"{leftVectors[0]=}")
-    # print(f"{right=}")
 
-    # lookCrossRight = torch.cross(look, right)  # adjust direction
-    # dotWorldY = torch.sum(lookCrossRight * worldY, dim=1)
-    # print(f"{dotWorldY=}")
-    # right[dotWorldY < 0] = -right[dotWorldY < 0]
-
-    # 3. Find the up vector.
-    up = torch.cross(look, right)  # [32, 3]
+    # 3. Find the y axis(- up vector).
+    axisY = torch.linalg.cross(look, right)
 
     # 4. Compose new extrinsic matrix.
-    newR = torch.stack((right, up, look), dim=-1)
+    newR = torch.stack((right, axisY, look), dim=-1)
     newT = torch.where(
         w2c.unsqueeze(1).expand(-1, 3),
         -torch.bmm(R.transpose(-1, -2), T).squeeze(),
