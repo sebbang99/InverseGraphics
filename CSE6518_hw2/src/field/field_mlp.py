@@ -4,6 +4,8 @@ from torch import Tensor
 
 from .field import Field
 
+import torch.nn as nn
+
 
 class FieldMLP(Field):
     def __init__(
@@ -24,7 +26,29 @@ class FieldMLP(Field):
         """
 
         super().__init__(cfg, d_coordinate, d_out)
-        raise NotImplementedError("This is your homework.")
+
+        # config parameters
+        positional_encoding_octaves = cfg.positional_encoding_octaves
+        num_layers: int = cfg.num_hidden_layers
+        d_hidden: int = cfg.d_hidden
+
+        # set up an MLP
+        layers = []
+
+        # input layer
+        layers.append(nn.Linear(d_coordinate, d_hidden))
+        layers.append(nn.ReLU())
+
+        # hidden layers
+        for _ in range(num_layers):
+            layers.append(nn.Linear(d_hidden, d_hidden))
+            layers.append(nn.ReLU())
+
+        # output layer
+        layers.append(nn.Linear(d_hidden, d_out))
+
+        self.mlp = nn.Sequential(*layers)  # unpacking
+        # raise NotImplementedError("This is your homework.")
 
     def forward(
         self,
@@ -32,4 +56,5 @@ class FieldMLP(Field):
     ) -> Float[Tensor, "batch output_dim"]:
         """Evaluate the MLP at the specified coordinates."""
 
+        return self.mlp(coordinates)  # mlp가 내부적으로 __call__()을 정의하고 있음.
         raise NotImplementedError("This is your homework.")

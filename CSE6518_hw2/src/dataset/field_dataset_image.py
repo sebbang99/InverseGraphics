@@ -14,7 +14,7 @@ class FieldDatasetImage(FieldDataset):
     def __init__(self, cfg: DictConfig) -> None:
         """Load the image in cfg.path into memory here."""
 
-        print(cfg)
+        # print(cfg)
 
         super().__init__(cfg)
 
@@ -24,7 +24,7 @@ class FieldDatasetImage(FieldDataset):
         self.image = transform(image)  # image를 자동으로 멤버 변수로 등록
 
         self.height, self.width = self.image.shape[1], self.image.shape[2]
-        print(self.image.shape)  # shape (3, H, W)
+        # print(self.image.shape)  # shape (3, H, W)
         # raise NotImplementedError("This is your homework.")
 
     def query(
@@ -39,19 +39,21 @@ class FieldDatasetImage(FieldDataset):
         parameter.
         """
 
-        image = self.image.unsqueeze(0)  # image shape (1, 3, H, W)
-        print(f"{image.shape=}")
+        image = self.image.to(coordinates.device).unsqueeze(
+            0
+        )  # image shape (1, 3, H, W)
+        # print(f"{image.shape=}")
 
         grid = coordinates * 2 - 1  # grid shape (4, 2)
-        print(f"{grid.shape=}")
+        # print(f"{grid.shape=}")
 
         grid = grid.view(1, -1, 1, 2)  # grid shape (1, 4, 1, 2)
-        print(f"{grid.shape=}")
+        # print(f"{grid.shape=}")
 
         sampled = F.grid_sample(
             image, grid, align_corners=True, mode="bilinear", padding_mode="border"
         )
-        print(f"{sampled.shape=}")
+        # print(f"{sampled.shape=}")
 
         return sampled.squeeze(0).squeeze(2).permute(1, 0)
         raise NotImplementedError("This is your homework.")
@@ -68,4 +70,5 @@ class FieldDatasetImage(FieldDataset):
     def grid_size(self) -> tuple[int, ...]:
         """Return a grid size that corresponds to the image's shape."""
 
+        return self.height, self.width
         raise NotImplementedError("This is your homework.")

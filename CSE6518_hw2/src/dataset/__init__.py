@@ -4,6 +4,7 @@ from .field_dataset import FieldDataset
 from .field_dataset_image import FieldDatasetImage
 from .field_dataset_implicit import FieldDatasetImplicit
 
+# 딕셔너리
 FIELD_DATASETS: dict[str, FieldDataset] = {
     "image": FieldDatasetImage,
     "implicit": FieldDatasetImplicit,

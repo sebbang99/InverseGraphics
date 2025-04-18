@@ -11,7 +11,7 @@ class FieldDataset(ABC):
     def __init__(self, cfg: DictConfig) -> None:
         self.cfg = cfg
 
-    @abstractmethod
+    @abstractmethod  # 하위 클래스에서 구현되어 있을 것임.
     def query(
         self,
         coordinates: Float[Tensor, "batch d_coordinate"],

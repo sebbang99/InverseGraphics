@@ -17,6 +17,7 @@ with install_import_hook(
     from src.visualization.image import save_rendered_field
 
 
+# hydra 설정 시스템을 사용한 config 로딩
 @hydra.main(
     version_base=None,
     config_path="../config",
@@ -27,6 +28,8 @@ def train(cfg: DictConfig):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     dataset = get_field_dataset(cfg)
     field = get_field(cfg, dataset.d_coordinate, dataset.d_out).to(device)
+    # debugging
+    # print(type(field))
     optimizer = torch.optim.Adam(
         field.parameters(),
         lr=cfg.learning_rate,
@@ -40,16 +43,19 @@ def train(cfg: DictConfig):
             nn.Sigmoid(),
         )
 
+    # 메인 학습 루프
     # Fit the field to the dataset.
     for iteration in (progress := trange(cfg.num_iterations)):
         optimizer.zero_grad()
         samples = generate_random_samples(dataset.d_coordinate, cfg.batch_size, device)
-        predicted = field(samples)
+        # print(f"{samples.shape=}")
+        predicted = field(samples)  # 만든 MLP 작동
         ground_truth = dataset.query(samples)
         loss = loss_fn(predicted, ground_truth)
-        loss.backward()
+        loss.backward()  # back-propagation
         optimizer.step()
 
+        # 중간 시각화
         # Intermittently visualize training progress.
         if iteration % cfg.visualization_interval == 0:
             with torch.no_grad():
