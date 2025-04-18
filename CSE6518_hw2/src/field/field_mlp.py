@@ -5,6 +5,7 @@ from torch import Tensor
 from .field import Field
 
 import torch.nn as nn
+from ..components.positional_encoding import PositionalEncoding
 
 
 class FieldMLP(Field):
@@ -32,11 +33,19 @@ class FieldMLP(Field):
         num_layers: int = cfg.num_hidden_layers
         d_hidden: int = cfg.d_hidden
 
+        # Positional encoding
+        if positional_encoding_octaves is not None:
+            self.encoder = PositionalEncoding(positional_encoding_octaves)
+            d_input = self.encoder.d_out(d_coordinate)
+        else:
+            self.encoder = None
+            d_input = d_coordinate
+
         # set up an MLP
         layers = []
 
         # input layer
-        layers.append(nn.Linear(d_coordinate, d_hidden))
+        layers.append(nn.Linear(d_input, d_hidden))
         layers.append(nn.ReLU())
 
         # hidden layers
@@ -55,6 +64,9 @@ class FieldMLP(Field):
         coordinates: Float[Tensor, "batch coordinate_dim"],
     ) -> Float[Tensor, "batch output_dim"]:
         """Evaluate the MLP at the specified coordinates."""
+
+        if self.encoder is not None:
+            coordinates = self.encoder(coordinates)
 
         return self.mlp(coordinates)  # mlp가 내부적으로 __call__()을 정의하고 있음.
         raise NotImplementedError("This is your homework.")
