@@ -16,6 +16,17 @@
             ]
         },
         {
+            "name": "Test Field Dataset Image",
+            "type": "python",
+            "request": "launch",
+            "module": "tests.test_field_dataset_image",
+            "justMyCode": true,
+            "args": [
+                "field=mlp",
+                "dataset=image"
+            ]
+        },
+        {
             "name": "Train NeRF",
             "type": "python",
             "request": "launch",
