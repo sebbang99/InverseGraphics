@@ -29,7 +29,7 @@ def train(cfg: DictConfig):
     dataset = get_field_dataset(cfg)
     field = get_field(cfg, dataset.d_coordinate, dataset.d_out).to(device)
     # debugging
-    # print(type(field))
+    print(type(field))
     optimizer = torch.optim.Adam(
         field.parameters(),
         lr=cfg.learning_rate,

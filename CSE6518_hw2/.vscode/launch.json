@@ -11,7 +11,7 @@
             "module": "scripts.train_field",
             "justMyCode": true,
             "args": [
-                "field=mlp",
+                "field=siren",
                 "dataset=image",
             ]
         },

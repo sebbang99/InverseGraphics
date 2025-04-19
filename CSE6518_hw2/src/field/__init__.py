@@ -7,7 +7,7 @@ from .field_hybrid_grid import FieldHybridGrid
 from .field_mlp import FieldMLP
 from .field_siren import FieldSiren
 
-# 딕셔너리 FIELDS를 통해 수동 매핑
+# 딕셔너리 FIELDS를 통해 어떤 field를 사용할 것인지 수동 매핑
 FIELDS: dict[str, Field] = {
     "grid": FieldGrid,
     "ground_plan": FieldGroundPlan,

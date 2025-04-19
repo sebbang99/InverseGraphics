@@ -30,4 +30,6 @@ class SineLayer(nn.Module):
                 )
 
     def forward(self, input):
-        return torch.sin(self.omega_0 * self.linear(input))
+        return torch.sin(
+            self.omega_0 * self.linear(input)
+        )  # sin이 ReLU를 대신하는 활성화 함수
