@@ -1,3 +1,4 @@
 name: grid
 
-side_length: 65
+grid:
+  side_length: 65
