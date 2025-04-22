@@ -29,11 +29,6 @@ class FieldGrid(Field):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         if d_coordinate == 2:
-            # self.grid = torch.zeros(
-            #     (d_out, self.side_length, self.side_length),
-            #     dtype=torch.float32,
-            #     device=device,
-            # )
             self.grid = nn.Parameter(
                 torch.randn(
                     (d_out, self.side_length, self.side_length),
@@ -43,10 +38,13 @@ class FieldGrid(Field):
                 * 0.01
             )
         elif d_coordinate == 3:
-            self.grid = torch.zeros(
-                (d_out, self.side_length, self.side_length, self.side_length),
-                dtype=torch.float32,
-                device=device,
+            self.grid = nn.Parameter(
+                torch.randn(
+                    (d_out, self.side_length, self.side_length, self.side_length),
+                    dtype=torch.float32,
+                    device=device,
+                )
+                * 0.01
             )
 
         # raise NotImplementedError("This is your homework.")
@@ -61,7 +59,6 @@ class FieldGrid(Field):
         """
 
         normalized_coordinates = 2 * coordinates - 1  # to [-1, 1]
-
         # input_grid는 공간 구조. sampling 당할 대상.
         # grid는 sampling할 좌표.
 
@@ -69,6 +66,7 @@ class FieldGrid(Field):
             # input: [1, C, H, W], grid: [1, B, 1, 2]
             input_grid = self.grid.unsqueeze(0)  # [1, C, H, W]
             grid = normalized_coordinates.unsqueeze(0).unsqueeze(2)  # [1, B, 1, 2]
+
             output = torch.nn.functional.grid_sample(
                 input_grid,
                 grid,
@@ -85,10 +83,13 @@ class FieldGrid(Field):
             grid = (
                 normalized_coordinates.unsqueeze(0).unsqueeze(2).unsqueeze(3)
             )  # [1, B, 1, 1, 3]
+
+            # print(f"{input_grid.shape=}")
+            # print(f"{grid.shape=}")
             output = torch.nn.functional.grid_sample(
                 input_grid,
                 grid,
-                mode="trilinear",
+                mode="bilinear",
                 padding_mode="border",
                 align_corners=True,
             )

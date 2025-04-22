@@ -66,7 +66,7 @@ def save_rendered_field(values: Float[Tensor, "*dimensions d_out"], path: Path) 
             y_axis = (x_axis + 1) % 3
             slice_axis = (x_axis + 1) % 3
             selector = [slice(None)] * 3
-            selector[slice_axis] = halfway[slice_axis]
+            selector[slice_axis] = halfway[slice_axis]  # 다차원 인덱싱을 위한 리스트.
             value_slice = repeat(values[selector], "h w () -> c h w", c=3)
             label = f"{'XYZ'[x_axis]}{'XYZ'[y_axis]} Slice"
             slices.append(add_label(value_slice, label))

@@ -32,14 +32,18 @@ def draw_label(
     return rearrange(image, "h w c -> c h w")
 
 
+# 이미지에 텍스트 라벨을 추가하는 함수.
 def add_label(
     image: Float[Tensor, "3 width height"],
     label: str,
-    font: Path = Path("data/Inter-Regular.otf"),
+    font: Path = Path("data/Inter-Regular.otf"),  # 라벨에 사용할 폰트 경로.
     font_size: int = 24,
 ) -> Float[Tensor, "3 width_with_label height_with_label"]:
-    return vcat(
-        draw_label(label, font, font_size, image.device),
+
+    return vcat(  # vertical concatenate
+        draw_label(
+            label, font, font_size, image.device
+        ),  # 라벨 문자열을 이미지로 바꿈.
         image,
         align="left",
         gap=4,

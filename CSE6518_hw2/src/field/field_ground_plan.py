@@ -4,6 +4,11 @@ from torch import Tensor
 
 from .field import Field
 
+from .field_grid import FieldGrid
+from .field_mlp import FieldMLP
+from ..components.positional_encoding import PositionalEncoding
+import torch
+
 
 class FieldGroundPlan(Field):
     def __init__(
@@ -22,7 +27,19 @@ class FieldGroundPlan(Field):
         """
         super().__init__(cfg, d_coordinate, d_out)
         assert d_coordinate == 3
-        raise NotImplementedError("This is your homework.")
+
+        self.grid_field = FieldGrid(
+            cfg, d_coordinate=2, d_out=cfg.d_grid_feature
+        )  # (x, y)
+        self.z_encoder = PositionalEncoding(cfg.positional_encoding_octaves)  # z
+
+        self.mlp_field = FieldMLP(
+            cfg,
+            d_coordinate=cfg.d_grid_feature + 2 * cfg.positional_encoding_octaves,
+            d_out=d_out,
+        )
+
+        # raise NotImplementedError("This is your homework.")
 
     def forward(
         self,
@@ -36,4 +53,16 @@ class FieldGroundPlan(Field):
           feed the result through the MLP.
         """
 
+        xy = coordinates[:, :2]
+        z = coordinates[:, 2:]
+
+        grid_features = self.grid_field(xy)
+        z_encoded = self.z_encoder(z)
+        # print(f"grid_features.shape: {grid_features.shape}")
+        # print(f"z_encoded.shape: {z_encoded.shape}")
+
+        combined = torch.cat([grid_features, z_encoded], dim=-1)
+        output = self.mlp_field(combined)
+
+        return output
         raise NotImplementedError("This is your homework.")

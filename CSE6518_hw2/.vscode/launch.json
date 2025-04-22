@@ -11,8 +11,8 @@
             "module": "scripts.train_field",
             "justMyCode": true,
             "args": [
-                "field=siren",
-                "dataset=image",
+                "field=ground_plan",
+                "dataset=implicit"
             ]
         },
         {
