@@ -52,7 +52,7 @@ def train(cfg: DictConfig):
         # Render the image.
         size = cfg.batch_size
         predicted = [
-            nerf(
+            nerf(  # nerf의 forward 함수 호출.
                 origin_batch.to(device),
                 direction_batch.to(device),
                 dataset.near,
@@ -92,7 +92,7 @@ def train(cfg: DictConfig):
         # Intermittently visualize training progress.
         if iteration % cfg.visualization_interval == 0:
             with torch.no_grad():
-                # Pick a random view to render.
+                # Pick a random view to render. 각 단계마다 랜덤한 뷰를 선택함.
                 b, _, _, _ = dataset.images.shape
                 rb = torch.randint(b, (1,)).item()
 
