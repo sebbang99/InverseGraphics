@@ -25,7 +25,7 @@ class FieldGrid(Field):
         super().__init__(cfg, d_coordinate, d_out)
         assert d_coordinate in (2, 3)
 
-        self.side_length = cfg.grid.side_length
+        self.side_length = cfg.side_length
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         if d_coordinate == 2:

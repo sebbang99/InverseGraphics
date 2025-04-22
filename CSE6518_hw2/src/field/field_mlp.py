@@ -28,12 +28,12 @@ class FieldMLP(Field):
 
         super().__init__(cfg, d_coordinate, d_out)
 
-        print(f"Config name: {cfg.name}")
+        # print(f"Config name: {cfg.name}")
 
         # config parameters
-        positional_encoding_octaves = cfg.mlp.positional_encoding_octaves
-        num_layers: int = cfg.mlp.num_hidden_layers
-        d_hidden: int = cfg.mlp.d_hidden
+        positional_encoding_octaves = cfg.positional_encoding_octaves
+        num_layers: int = cfg.num_hidden_layers
+        d_hidden: int = cfg.d_hidden
 
         # Positional encoding
         if positional_encoding_octaves is not None:

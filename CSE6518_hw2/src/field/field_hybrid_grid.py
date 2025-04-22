@@ -23,8 +23,8 @@ class FieldHybridGrid(Field):
         """
         super().__init__(cfg, d_coordinate, d_out)
 
-        self.grid_field = FieldGrid(cfg, d_coordinate, cfg.d_grid_feature)
-        self.mlp_field = FieldMLP(cfg, cfg.d_grid_feature, d_out)
+        self.grid_field = FieldGrid(cfg.grid, d_coordinate, cfg.d_grid_feature)
+        self.mlp_field = FieldMLP(cfg.mlp, cfg.d_grid_feature, d_out)
         # raise NotImplementedError("This is your homework.")
 
     def forward(

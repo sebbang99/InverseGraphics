@@ -29,12 +29,12 @@ class FieldGroundPlan(Field):
         assert d_coordinate == 3
 
         self.grid_field = FieldGrid(
-            cfg, d_coordinate=2, d_out=cfg.d_grid_feature
+            cfg.grid, d_coordinate=2, d_out=cfg.d_grid_feature
         )  # (x, y)
         self.z_encoder = PositionalEncoding(cfg.positional_encoding_octaves)  # z
 
         self.mlp_field = FieldMLP(
-            cfg,
+            cfg.mlp,
             d_coordinate=cfg.d_grid_feature + 2 * cfg.positional_encoding_octaves,
             d_out=d_out,
         )
